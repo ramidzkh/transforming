@@ -15,6 +15,9 @@ repositories {
 dependencies {
     compileOnly("org.jetbrains", "annotations", "21.0.1")
 
+    // Feature - Guava
+    compileOnly("com.google.guava", "guava", "30.1.1-jre")
+
     testImplementation("org.junit.jupiter:junit-jupiter-api:5.7.2")
     testRuntimeOnly("org.junit.jupiter:junit-jupiter-engine")
 }

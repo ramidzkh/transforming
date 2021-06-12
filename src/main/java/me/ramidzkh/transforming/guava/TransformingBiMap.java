@@ -14,24 +14,25 @@
  * limitations under the License.
  */
 
-package me.ramidzkh.transforming.java;
+package me.ramidzkh.transforming.guava;
 
+import com.google.common.collect.BiMap;
+import me.ramidzkh.transforming.java.TransformingSet;
 import me.ramidzkh.transforming.map.EntryMapper;
 import me.ramidzkh.transforming.map.Mapper;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.jetbrains.annotations.NotNull;
 
-import java.util.Collection;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Set;
 
-public class TransformingMap<A, B, K, V> implements Map<K, V> {
+public class TransformingBiMap<A, B, K, V> implements BiMap<K, V> {
 
-    private final Map<A, B> map;
+    private final BiMap<A, B> map;
     protected final Mapper<A, K> keyMapper;
     protected final Mapper<B, V> valueMapper;
 
-    public TransformingMap(Map<A, B> map, Mapper<A, K> keyMapper, Mapper<B, V> valueMapper) {
+    public TransformingBiMap(BiMap<A, B> map, Mapper<A, K> keyMapper, Mapper<B, V> valueMapper) {
         this.map = map;
         this.keyMapper = keyMapper;
         this.valueMapper = valueMapper;
@@ -49,20 +50,21 @@ public class TransformingMap<A, B, K, V> implements Map<K, V> {
 
     @Override
     public boolean containsKey(Object key) {
-        return map.containsKey(key);
+        return map.containsKey(keyMapper.unmap((K) key));
     }
 
     @Override
     public boolean containsValue(Object value) {
-        return map.containsValue(value);
+        return map.containsValue(valueMapper.unmap((V) value));
     }
 
     @Override
     public V get(Object key) {
-        return valueMapper.map(map.get(keyMapper.map((A) key)));
+        return valueMapper.map(map.get(keyMapper.unmap((K) key)));
     }
 
-    public V put(K key, V value) {
+    @Override
+    public @Nullable V put(@Nullable K key, @Nullable V value) {
         return valueMapper.map(map.put(keyMapper.unmap(key), valueMapper.unmap(value)));
     }
 
@@ -71,9 +73,15 @@ public class TransformingMap<A, B, K, V> implements Map<K, V> {
         return valueMapper.map(map.remove(keyMapper.unmap((K) key)));
     }
 
-    public void putAll(@NotNull Map<? extends K, ? extends V> m) {
-        for (Entry<? extends K, ? extends V> e : m.entrySet()) {
-            map.put(keyMapper.unmap(e.getKey()), valueMapper.unmap(e.getValue()));
+    @Override
+    public @Nullable V forcePut(@Nullable K key, @Nullable V value) {
+        return valueMapper.map(map.forcePut(keyMapper.unmap(key), valueMapper.unmap(value)));
+    }
+
+    @Override
+    public void putAll(Map<? extends K, ? extends V> map) {
+        for (Entry<? extends K, ? extends V> entry : map.entrySet()) {
+            this.map.put(keyMapper.unmap(entry.getKey()), valueMapper.unmap(entry.getValue()));
         }
     }
 
@@ -88,10 +96,9 @@ public class TransformingMap<A, B, K, V> implements Map<K, V> {
         return new TransformingSet<>(map.keySet(), keyMapper);
     }
 
-    @NotNull
     @Override
-    public Collection<V> values() {
-        return new TransformingCollection<>(map.values(), valueMapper);
+    public Set<V> values() {
+        return new TransformingSet<>(map.values(), valueMapper);
     }
 
     @NotNull
@@ -101,7 +108,7 @@ public class TransformingMap<A, B, K, V> implements Map<K, V> {
     }
 
     @Override
-    public int hashCode() {
-        return Objects.hash(map, keyMapper, valueMapper);
+    public BiMap<V, K> inverse() {
+        return new TransformingBiMap<>(map.inverse(), valueMapper, keyMapper);
     }
 }
